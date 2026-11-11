@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>Prueba iframe Apuestería</title>
+  <style>
+    * { box-sizing: border-box; }
+    html, body { margin: 0; height: 100%; }
+    body {
+      display: flex; flex-direction: column; min-height: 100vh;
+      font-family: system-ui, -apple-system, sans-serif; background: #f4f4f5; color: #18181b;
+    }
+    header { padding: 10px 12px; background: #18181b; color: #fafafa; font-size: 13px; }
+    header strong { display: block; font-size: 14px; margin-bottom: 4px; }
+    #log { font-family: ui-monospace, Menlo, monospace; font-size: 11px; color: #a1a1aa; white-space: pre-wrap; }
+    form { display: flex; gap: 8px; padding: 12px; }
+    input { flex: 1; min-width: 0; padding: 10px; font-size: 16px; border: 1px solid #d4d4d8; border-radius: 8px; }
+    button { padding: 10px 14px; font-size: 15px; border: 0; border-radius: 8px; background: #2563eb; color: #fff; }
+    button.secondary { background: #52525b; }
+    /* Mismo layout que el demo: iframe absoluto ocupando todo el main. */
+    main { flex: 1 1 auto; display: flex; position: relative; min-height: 0; }
+    iframe { position: absolute; inset: 0; border: 0; width: 100%; height: 100%; background: #fff; display: none; }
+  </style>
+</head>
+<body>
+  <header>
+    <strong>Prueba de iframe cross-site (sin Flutter)</strong>
+    <div id="log">Host: <span id="host"></span></div>
+  </header>
+  <form id="form">
+    <input id="link" type="url" placeholder="https://sandbox-aff.apuesteria.mx/?t=..." autocomplete="off" />
+    <button type="submit">Cargar</button>
+    <button type="button" id="top" class="secondary">Pestaña</button>
+  </form>
+  <main>
+    <iframe id="frame" title="Apuestería" allow="fullscreen"></iframe>
+  </main>
+  <script>
+    // El link se puede pasar en el hash: index.html#https://sandbox-aff.apuesteria.mx/?t=...
+    // El hash no se envía al servidor de GitHub, así que el token no queda en sus logs.
+    var frame = document.getElementById('frame');
+    var input = document.getElementById('link');
+    var logEl = document.getElementById('log');
+    var loads = 0;
+
+    document.getElementById('host').textContent = location.host;
+
+    function log(msg) {
+      var line = new Date().toLocaleTimeString() + ' ' + msg;
+      logEl.textContent += '\n' + line;
+      console.log('[IframeTest] ' + line);
+    }
+
+    function load(link) {
+      if (!/^https:\/\//.test(link)) { log('Link inválido'); return; }
+      loads = 0;
+      // src se asigna una sola vez, igual que en el demo (app.js → showFrame).
+      frame.src = link;
+      frame.style.display = 'block';
+      document.getElementById('form').style.display = 'none';
+      log('iframe src asignado');
+    }
+
+    frame.addEventListener('load', function () {
+      loads++;
+      log('iframe onLoad #' + loads);
+    });
+
+    document.getElementById('form').addEventListener('submit', function (e) {
+      e.preventDefault();
+      load(input.value.trim());
+    });
+
+    // Comparación: el mismo link como navegación principal (first-party).
+    // Usa un token nuevo: si el token es de un solo uso, no reutilices el del iframe.
+    document.getElementById('top').addEventListener('click', function () {
+      var link = input.value.trim();
+      if (link) window.open(link, '_blank');
+    });
+
+    var fromHash = decodeURIComponent(location.hash.slice(1));
+    if (fromHash) {
+      input.value = fromHash;
+      history.replaceState(null, '', location.pathname);
+      load(fromHash);
+    }
+  </script>
+</body>
+</html>
